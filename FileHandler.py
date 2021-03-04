@@ -36,7 +36,7 @@ class FileHandler:
 
     def WriteFileContents(self, fileName, content):
         file = open(fileName, 'w')
-        file.writelines(contents)
+        file.writelines(content)
         file.close()
 
     def DirectoryExists(self, path):
