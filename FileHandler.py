@@ -1,8 +1,20 @@
 import os
+import pickle
 
 class FileHandler:
     def __init__(self):
         pass
+
+    def PickleWriteLine(self, path, filename, content):
+        file = open(f'{path}/{filename}', 'wb')
+        pickle.dump(content, file)
+        file.close()
+
+    def PickleReadFile(self, path, filename, content):
+        file = open(f'{path}/{filename}', 'rb')
+        fileContent = pickle.load(file)
+        file.close()
+        return fileContent
 
     def ReadLine(self, path, fileName):
         if(os.path.exists(fileName)):
@@ -22,7 +34,7 @@ class FileHandler:
         else:
             return []         
 
-    def WriteFileContents(self, fileName, contents):
+    def WriteFileContents(self, fileName, content):
         file = open(fileName, 'w')
         file.writelines(contents)
         file.close()
