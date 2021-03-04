@@ -5,13 +5,13 @@ class FileHandler:
     def __init__(self):
         pass
 
-    def PickleWriteFile(self, path, filename, content):
-        file = open(f'{path}/{filename}', 'wb')
+    def PickleWriteFile(self, fileLocation, content):
+        file = open(f'{fileLocation}', 'wb')
         pickle.dump(content, file)
         file.close()
 
-    def PickleReadFile(self, path, filename):
-        file = open(f'{path}/{filename}', 'rb')
+    def PickleReadFile(self, fileLocation):
+        file = open(f'{fileLocation}', 'rb')
         fileContent = pickle.load(file)
         file.close()
         return fileContent

@@ -51,7 +51,7 @@ class Application:
 
     def ApplyAIAlgorithm(self, videoName):
         try:
-            startTime = time.time()
+            #startTime = time.time()
             # Open input video file into memory 
             inputVideo = cv2.VideoCapture(f"{self.directorySettings.inputDirectory}/{videoName}")
             length = int(inputVideo.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -111,9 +111,9 @@ class Application:
             inputVideo.release()
             cv2.destroyAllWindows()
 
-            endTime = time.time()
-            timeTaken = endTime - startTime
-            newContent = f"start:{str(startTime)}\nend:{str(endTime)}\ntimeTaken:{str(timeTaken)}\ntotalFrames:{str(length)}\ntimePerFrame:{str(timeTaken/length)}"
+            #endTime = time.time()
+            #timeTaken = endTime - startTime
+            #newContent = f"start:{str(startTime)}\nend:{str(endTime)}\ntimeTaken:{str(timeTaken)}\ntotalFrames:{str(length)}\ntimePerFrame:{str(timeTaken/length)}"
             #self.fileHandler.WriteFileContents(f"timings-{videoName}.txt", newContent)
             
             return
@@ -176,7 +176,7 @@ class Application:
     def LoadKnownFaceEncodings(self):
         print("Reading encodings from database")
         #faceEncodingsFileData = self.fileHandler.ReadLines("", f"{self.directorySettings.faceEncodingsDirectory}.txt")
-        faceEncodingsFileData = self.fileHandler.PickleReadFile("", f"{self.directorySettings.faceEncodingsDirectory}.txt")
+        faceEncodingsFileData = self.fileHandler.PickleReadFile(f"{self.directorySettings.faceEncodingsDirectory}.txt")
         if(not len(faceEncodingsFileData) > 0):
             return
 
@@ -185,7 +185,7 @@ class Application:
         splitEncodings = knownPeopleData.split(",")
         for identifierAndEncoding in splitEncodings:
             encodingData = identifierAndEncoding.split("_")
-            identifier = encodingData[0].replace('\n ', '') # replace removes newline char 
+            identifier = encodingData[0].replace('\n ', '') 
             encoding = encodingData[1]
             self.knownPeople[identifier] = encoding
             n += 1
@@ -201,7 +201,8 @@ class Application:
             if(count != len(knownPeople)-1):
                 contents += ','
             count += 1
-        self.fileHandler.WriteFileContents("face_encodings.txt", contents)
+        #self.fileHandler.WriteFileContents("face_encodings.txt", contents)
+        self.fileHandler.PickleWriteFile("face_encodings.txt", contents)
 
     def LoadInputVideos(self):
         # Go through all videos in the videos directory and create a new ArtefactVideo object
