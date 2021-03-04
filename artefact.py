@@ -19,7 +19,6 @@ Todo list:
 2. Show each frame being written to output video (can use canvas : https://solarianprogrammer.com/2018/04/21/python-opencv-show-video-tkinter-window/)
 
 !!! handy for face_locations  (faces that aren't detected using face_encodings)
-
 https://github.com/ageitgey/face_recognition/issues/670
 """
 

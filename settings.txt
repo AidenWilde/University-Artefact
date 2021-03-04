@@ -1,0 +1,1 @@
+inputDirectory=videos, outputDirectory=output_videos, knownPeople=known_people, faceEncodings=face_encodings
