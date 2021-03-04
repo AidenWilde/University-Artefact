@@ -5,7 +5,7 @@ class FileHandler:
     def __init__(self):
         pass
 
-    def PickleWriteLine(self, path, filename, content):
+    def PickleWriteFile(self, path, filename, content):
         file = open(f'{path}/{filename}', 'wb')
         pickle.dump(content, file)
         file.close()
