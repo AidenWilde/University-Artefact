@@ -10,7 +10,7 @@ class FileHandler:
         pickle.dump(content, file)
         file.close()
 
-    def PickleReadFile(self, path, filename, content):
+    def PickleReadFile(self, path, filename):
         file = open(f'{path}/{filename}', 'rb')
         fileContent = pickle.load(file)
         file.close()

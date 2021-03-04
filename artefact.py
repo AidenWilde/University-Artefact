@@ -114,7 +114,7 @@ class Application:
             endTime = time.time()
             timeTaken = endTime - startTime
             newContent = f"start:{str(startTime)}\nend:{str(endTime)}\ntimeTaken:{str(timeTaken)}\ntotalFrames:{str(length)}\ntimePerFrame:{str(timeTaken/length)}"
-            self.fileHandler.WriteFileContents(f"timings-{videoName}.txt", newContent)
+            #self.fileHandler.WriteFileContents(f"timings-{videoName}.txt", newContent)
             
             return
         except Error as e:
@@ -175,7 +175,8 @@ class Application:
 
     def LoadKnownFaceEncodings(self):
         print("Reading encodings from database")
-        faceEncodingsFileData = self.fileHandler.ReadLines("", f"{self.directorySettings.faceEncodingsDirectory}.txt")
+        #faceEncodingsFileData = self.fileHandler.ReadLines("", f"{self.directorySettings.faceEncodingsDirectory}.txt")
+        faceEncodingsFileData = self.fileHandler.PickleReadFile("", f"{self.directorySettings.faceEncodingsDirectory}.txt")
         if(not len(faceEncodingsFileData) > 0):
             return
 
