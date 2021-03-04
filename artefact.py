@@ -81,7 +81,7 @@ class Application:
                     name = ""
                     for knownPerson in self.knownPeople:
                         knownFaceEncoding = self.knownPeople[knownPerson]
-                        match = face_recognition.compare_faces(numpy.fromstring(knownFaceEncoding, dtype=float, sep=' '), faceEncoding, tolerance=0.50)
+                        match = face_recognition.compare_faces([knownFaceEncoding], faceEncoding, tolerance=0.50)
                         
                         if(match): #!!!!!!!! should remove this, only added so it worked for the timings
                             if(match[0]):
@@ -174,35 +174,25 @@ class Application:
                 continue  
 
     def LoadKnownFaceEncodings(self):
-        print("Reading encodings from database")
+        if(not self.fileHandler.DirectoryExists(f"{self.directorySettings.faceEncodingsDirectory}.txt")):
+            print("No known encodings file... skipping pre-load.")
+            return 
+
+        print("Reading known encodings")
         #faceEncodingsFileData = self.fileHandler.ReadLines("", f"{self.directorySettings.faceEncodingsDirectory}.txt")
         faceEncodingsFileData = self.fileHandler.PickleReadFile(f"{self.directorySettings.faceEncodingsDirectory}.txt")
         if(not len(faceEncodingsFileData) > 0):
             return
 
-        knownPeopleData = ' '.join(faceEncodingsFileData)
-        n = 0
-        splitEncodings = knownPeopleData.split(",")
-        for identifierAndEncoding in splitEncodings:
-            encodingData = identifierAndEncoding.split("_")
-            identifier = encodingData[0].replace('\n ', '') 
-            encoding = encodingData[1]
-            self.knownPeople[identifier] = encoding
-            n += 1
+        # need to alter how it reads known encodings
+        for knownEncoding in faceEncodingsFileData:
+            self.knownPeople[knownEncoding] = faceEncodingsFileData[knownEncoding]
 
         print(f"Finished pre-loading {len(self.knownPeople.keys())} people")
         print(list(self.knownPeople.keys()))
 
     def SaveKnownPeople(self, knownPeople):
-        count = 0
-        contents = ""
-        for knownPerson in knownPeople:
-            contents += f"{knownPerson}_{knownPeople[knownPerson]}"
-            if(count != len(knownPeople)-1):
-                contents += ','
-            count += 1
-        #self.fileHandler.WriteFileContents("face_encodings.txt", contents)
-        self.fileHandler.PickleWriteFile("face_encodings.txt", contents)
+        self.fileHandler.PickleWriteFile("face_encodings.txt", knownPeople)
 
     def LoadInputVideos(self):
         # Go through all videos in the videos directory and create a new ArtefactVideo object

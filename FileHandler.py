@@ -6,15 +6,14 @@ class FileHandler:
         pass
 
     def PickleWriteFile(self, fileLocation, content):
-        file = open(f'{fileLocation}', 'wb')
-        pickle.dump(content, file)
-        file.close()
+        with open(fileLocation, 'wb') as file:
+            pickle.dump(content, file)
 
     def PickleReadFile(self, fileLocation):
-        file = open(f'{fileLocation}', 'rb')
-        fileContent = pickle.load(file)
-        file.close()
-        return fileContent
+        with open(fileLocation, 'rb') as file:
+	        all_face_encodings = pickle.load(file)
+
+        return all_face_encodings
 
     def ReadLine(self, path, fileName):
         if(os.path.exists(fileName)):
