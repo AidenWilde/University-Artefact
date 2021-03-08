@@ -4,7 +4,7 @@ class TkinterWrapper:
     def __init__(self, tkMaster):
         self.master = tkMaster
 
-    def NewButton(self, text, function, column, row):
+    def NewButton(self, text, function, column, row, state=tk.NORMAL):
         """
         text : the text that the button will inherit
         function : the function the button will execute once clicked
@@ -14,6 +14,7 @@ class TkinterWrapper:
         button = tk.Button(self.master)
         button["text"] = text
         button["command"] = function
+        button["state"] = state
         button.grid(column=column, row=row)
         button.config(width=20, height=5)
         return button

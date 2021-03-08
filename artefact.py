@@ -3,8 +3,9 @@ import cv2 # available at : https://pypi.org/project/opencv-python/
 import face_recognition # available at : https://pypi.org/project/face-recognition/
 import threading
 import os
-import numpy, json # not sure these are needed - double check.
+import numpy
 import time
+from enum import Enum
 # custom libraries made by me
 from TkinterWrapper import TkinterWrapper 
 from FileHandler import FileHandler
@@ -22,6 +23,10 @@ Todo list:
 https://github.com/ageitgey/face_recognition/issues/670
 """
 
+class InputType(Enum):
+    PreRecorded = 0
+    Realtime = 1
+
 class Application:
     def __init__(self):
         self.fileHandler = FileHandler()
@@ -29,12 +34,17 @@ class Application:
         # Supported formats listed here: https://docs.opencv.org/master/d4/da8/group__imgcodecs.html
         self.supportedFileFormats = ["jpg", "jpeg", "mp4", "mov"]
         self.knownPeople = {}
+        self.videosToAnalyse = []
+        self.knownPeopleLoaded = False
+        self.videosToAnalyseLoaded = False
+        self.runStartedAtleastOnce = False
         self.LoadKnownFaceEncodings()
-
+        
         mainWindow = tk.Tk()
         self.gui = ArtefactGUI(master=mainWindow)
-        self.gui.AddWidget("button", "Start", self.Run, 3, 1)
-        self.runStatusLabel = self.gui.AddWidget("label", "Status: Awaiting input", None, 3, 3)
+        self.runStatusLabel = self.gui.AddWidget("label", "Status: Awaiting input", None, 3, 1)
+        self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda : self.Run(InputType.PreRecorded), 3, 3) 
+        self.realTimeButton = self.gui.AddWidget("button", "Realtime analysis", lambda : self.Run(InputType.Realtime), 3, 6)
         self.gui.mainloop()
 
     def ReadSettings(self):
@@ -136,20 +146,45 @@ class Application:
         print(f"Created new output video to {self.directorySettings.outputDirectory}/{videoName}")
         return video
 
-    def Run(self):
+    def Run(self, inputType):
         self.gui.StartAutoRefresh()
-        self.gui.UpdateLabelWidget(self.runStatusLabel, "Status: Loading known people...")
+        if(self.runStartedAtleastOnce == False):
+            if(self.videosToAnalyseLoaded == False and self.knownPeopleLoaded == False):
+                threading.Thread(target=self.LoadImagesAndVideos).start()
+            self.runStartedAtleastOnce = True
+
         try:
-            threading.Thread(target=self.LoadImagesAndVideos).start() # stops program freezing
+            if(inputType == InputType.PreRecorded):
+                threading.Thread(target=self.AnalyseVideos).start()
+                
+            elif(inputType == InputType.Realtime):
+                pass
+            # rest of functionality here...
         except Error as e:
             self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
             print(e.GetErrorMessage())
 
-    def LoadImagesAndVideos(self):
-        self.LoadKnownFaces()
-        self.LoadInputVideos()
+    def AnalyseVideos(self):
+        self.gui.DisableButton(self.preRecordedButton)
+        for video in self.videosToAnalyse:
+            try:
+                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Starting video {video}")
+                self.ApplyAIAlgorithm(video)
+                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Finished video {video}")
+            except Error as e:
+                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
+                print(e.GetErrorMessage())
+                continue
+        self.gui.EnableButton(self.preRecordedButton)
 
-    def LoadKnownFaces(self):
+    def LoadImagesAndVideos(self):
+        self.LoadInputImages()
+        self.LoadInputVideos()
+        self.gui.UpdateLabelWidget(self.runStatusLabel, "Finished pre-loading images and videos. Awaiting input.")
+        return
+
+    def LoadInputImages(self):
+        self.gui.UpdateLabelWidget(self.runStatusLabel, "Status: Loading known faces...")
         imageFiles = self.fileHandler.ListDirectory(self.directorySettings.knownPeopleDirectory)
         for imageFile in imageFiles:
             fileInformation = imageFile.split(".")
@@ -173,6 +208,8 @@ class Application:
             else:
                 continue  
 
+        self.knownPeopleLoaded = True
+
     def LoadKnownFaceEncodings(self):
         if(not self.fileHandler.DirectoryExists(f"{self.directorySettings.faceEncodingsDirectory}.txt")):
             print("No known encodings file... skipping pre-load.")
@@ -195,26 +232,19 @@ class Application:
         self.fileHandler.PickleWriteFile("face_encodings.txt", knownPeople)
 
     def LoadInputVideos(self):
+        self.gui.UpdateLabelWidget(self.runStatusLabel, "Status: Loading input videos...")
+
         # Go through all videos in the videos directory and create a new ArtefactVideo object
         videoFiles = self.fileHandler.ListDirectory(self.directorySettings.inputDirectory)
-        videosToAnalyse = []
         for video in videoFiles:
             fileFormat = video.split(".")[1].lower()
             if(fileFormat in self.supportedFileFormats):
-                videosToAnalyse.append(video)
+                self.videosToAnalyse.append(video)
             else:
                 continue
 
-        for video in videosToAnalyse:
-            try:
-                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Starting video {video}")
-                self.ApplyAIAlgorithm(video)
-                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Finished video {video}")
-            except Error as e:
-                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
-                print(e.GetErrorMessage())
-                continue
-            
+        self.videosToAnalyseLoaded = True
+        self.gui.EnableButton(self.preRecordedButton)
 
 application = Application()
 print("Artefact application closed.")

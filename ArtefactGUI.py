@@ -17,11 +17,11 @@ class ArtefactGUI(tk.Frame):
         self.CreateCoreWidgets()
         self.master.update()
 
-    def AddWidget(self, widgetType, text, func, column, row):
+    def AddWidget(self, widgetType, text, func, column, row, state=tk.NORMAL):
         widget = None
         widgetType = widgetType.lower()
         if(widgetType == "button"):
-            widget = self.tkinterWrapper.NewButton(text, func, column, row)
+            widget = self.tkinterWrapper.NewButton(text, func, column, row, state)
         elif(widgetType == "label"):            
             widget = self.tkinterWrapper.NewLabel(text, column, row)
 
@@ -38,4 +38,15 @@ class ArtefactGUI(tk.Frame):
 
     def CreateCoreWidgets(self):
         # Create widgets for main window functionality that 't be created externally
-        self.quitButton = self.tkinterWrapper.NewButton("Quit", self.master.destroy, 3, 5)
+        self.quitButton = self.tkinterWrapper.NewButton("Quit", self.master.destroy, 3, 9)
+
+    def DisableButton(self, button):
+        if(button['state'] == tk.NORMAL):
+            button['state'] = tk.DISABLED
+        return button['state']
+
+    def EnableButton(self, button):
+        if(button['state'] == tk.DISABLED):
+            button['state'] = tk.NORMAL
+        return button['state']
+        
