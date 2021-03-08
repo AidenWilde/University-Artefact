@@ -11,8 +11,8 @@ class ArtefactGUI(tk.Frame):
 
     def CreateMainWindow(self):
         self.master.title("Artefact")
-        self.master.minsize(800, 640)
-        self.master.maxsize(800, 640)
+        self.master.minsize(186,342)
+        self.master.maxsize(186,342)
         self.widgets = []
         self.CreateCoreWidgets()
         self.master.update()

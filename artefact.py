@@ -91,9 +91,9 @@ class Application:
                     name = ""
                     for knownPerson in self.knownPeople:
                         knownFaceEncoding = self.knownPeople[knownPerson]
-                        match = face_recognition.compare_faces([knownFaceEncoding], faceEncoding, tolerance=0.50)
+                        match = face_recognition.compare_faces([knownFaceEncoding], faceEncoding, tolerance=0.5)
                         
-                        if(match): #!!!!!!!! should remove this, only added so it worked for the timings
+                        if(match):
                             if(match[0]):
                                 print(f"match found for {knownPerson} in {videoName}")
                                 name = knownPerson
@@ -193,7 +193,7 @@ class Application:
                     print(f"Skipped loading file {fileInformation[0]} because an encoding is already known of this individual")
                     continue
 
-                print(f"New image found, analysing image {fileInformation[0]} and saving to encoding database")
+                print(f"New image found, analysing image {fileInformation[0]} and saving to face encoding database")
                 loadedImage = face_recognition.load_image_file(self.directorySettings.knownPeopleDirectory + "/"+ imageFile)
                 faceLocations = face_recognition.face_locations(loadedImage, model="cnn", number_of_times_to_upsample=0)
                 faceEncodings = face_recognition.face_encodings(loadedImage, known_face_locations=faceLocations)
