@@ -214,7 +214,7 @@ class Application:
             else:
                 continue  
 
-        self.knownPeopleLoaded = True
+        self.gui.EnableButton(self.realTimeButton)
 
     def LoadKnownFaceEncodings(self):
         if(not self.fileHandler.DirectoryExists(f"{self.directorySettings.faceEncodingsDirectory}.txt")):
@@ -252,7 +252,6 @@ class Application:
                 continue
 
         self.gui.EnableButton(self.preRecordedButton)
-        self.gui.EnableButton(self.realTimeButton)
 
 application = Application()
 print("Artefact application closed.")
