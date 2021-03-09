@@ -42,11 +42,10 @@ class Application:
         self.gui = ArtefactGUI(master=mainWindow)
         self.runStatusLabel = self.gui.AddWidget("label", "Status: Awaiting input", None, 1, 1)
         self.reloadResourcesButton = self.gui.AddWidget("button", "Load/Reload resources", lambda: self.LoadImagesAndVideos(), 1, 2)
-        self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda: self.Run(InputType.PreRecorded), 1, 3) 
-        self.realTimeButton = self.gui.AddWidget("button", "Real-time analysis", lambda: self.Run(InputType.Realtime), 1, 4)
+        self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda: self.Run(InputType.PreRecorded), 1, 3, tk.DISABLED) 
+        self.realTimeButton = self.gui.AddWidget("button", "Real-time analysis", lambda: self.Run(InputType.Realtime), 1, 4,  tk.DISABLED)
         self.quitButton = self.gui.AddWidget("button", "Quit", lambda : mainWindow.destroy(), 1, 5)
         
-        self.gui.DisableButton(self.preRecordedButton)
         self.gui.mainloop()
 
     def ReadSettings(self):
@@ -119,9 +118,7 @@ class Application:
                 # cv uses BGR instead of RGB so converting it to the same as face_recognition uses
                 rgbFrame = frame[:, :, ::-1]
                 
-                identifyIndividualsInFrameResult = self.IdentifyIndividualsInFrame(rgbFrame)
-                faceNames = identifyIndividualsInFrameResult[0]
-                faceLocations = identifyIndividualsInFrameResult[1]
+                (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(rgbFrame)
                 updatedFrame = self.DrawResultsToFrame(frame, faceNames, faceLocations)
 
                 # Write the resulting image to the output video file
@@ -255,6 +252,7 @@ class Application:
                 continue
 
         self.gui.EnableButton(self.preRecordedButton)
+        self.gui.EnableButton(self.realTimeButton)
 
 application = Application()
 print("Artefact application closed.")
