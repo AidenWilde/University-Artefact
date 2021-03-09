@@ -11,8 +11,8 @@ class ArtefactGUI(tk.Frame):
 
     def CreateMainWindow(self):
         self.master.title("Artefact")
-        self.master.minsize(186,342)
-        self.master.maxsize(186,342)
+        self.master.minsize(186,425)
+        self.master.maxsize(186,425)
         self.widgets = []
         self.CreateCoreWidgets()
         self.master.update()
@@ -38,7 +38,7 @@ class ArtefactGUI(tk.Frame):
 
     def CreateCoreWidgets(self):
         # Create widgets for main window functionality that 't be created externally
-        self.quitButton = self.tkinterWrapper.NewButton("Quit", self.master.destroy, 3, 9)
+        self.quitButton = self.tkinterWrapper.NewButton("Quit", self.master.destroy, 1, 5)
 
     def DisableButton(self, button):
         if(button['state'] == tk.NORMAL):

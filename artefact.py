@@ -35,16 +35,16 @@ class Application:
         self.supportedFileFormats = ["jpg", "jpeg", "mp4", "mov"]
         self.knownPeople = {}
         self.videosToAnalyse = []
-        self.knownPeopleLoaded = False
-        self.videosToAnalyseLoaded = False
-        self.runStartedAtleastOnce = False
         self.LoadKnownFaceEncodings()
-        
+        self.resourcesLoadedAtleastOnce = False
+
         mainWindow = tk.Tk()
         self.gui = ArtefactGUI(master=mainWindow)
-        self.runStatusLabel = self.gui.AddWidget("label", "Status: Awaiting input", None, 3, 1)
-        self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda : self.Run(InputType.PreRecorded), 3, 3) 
-        self.realTimeButton = self.gui.AddWidget("button", "Realtime analysis", lambda : self.Run(InputType.Realtime), 3, 6)
+        self.runStatusLabel = self.gui.AddWidget("label", "Status: Awaiting input", None, 1, 1)
+        self.reloadResourcesButton = self.gui.AddWidget("button", "Load/Reload resources", lambda : self.LoadImagesAndVideos(), 1, 2)
+        self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda : self.Run(InputType.PreRecorded), 1, 3) 
+        self.realTimeButton = self.gui.AddWidget("button", "Real-time analysis", lambda : self.Run(InputType.Realtime), 1, 4)
+        self.gui.DisableButton(self.preRecordedButton)
         self.gui.mainloop()
 
     def ReadSettings(self):
@@ -59,6 +59,42 @@ class Application:
             settings = Settings(separateSettings[0].split('=')[1], separateSettings[1].split('=')[1], separateSettings[2].split('=')[1], separateSettings[3].split('=')[1])                
             return settings
 
+    def IdentifyIndividualsInFrame(self, frame):
+        faceNames = []
+
+        faceLocations = face_recognition.face_locations(frame)
+        faceEncodings = face_recognition.face_encodings(frame, faceLocations)
+        for faceEncoding in faceEncodings:
+            name = ""
+            for knownPerson in self.knownPeople:
+                knownFaceEncoding = self.knownPeople[knownPerson]
+                match = face_recognition.compare_faces([knownFaceEncoding], faceEncoding, tolerance=0.5)
+                
+                if(match):
+                    if(match[0]):
+                        print(f"match found for {knownPerson}")
+                        name = knownPerson
+            faceNames.append(name)
+
+        return (faceNames, faceLocations) 
+
+    def DrawResultsToFrame(self, originalFrame, faceNames, faceLocations):
+        for (top, right, bottom, left), name in zip(faceLocations, faceNames):
+            # Draw a box around the face
+            mainColour = (0,255,0)
+            cv2.rectangle(originalFrame, (left, top), (right, bottom), mainColour, 2)
+
+            # Draw a label with a name below the face
+            if(name != ""):
+                idBoxStart = (left, bottom)
+                idBoxEnd = (right, bottom + 20)
+                cv2.rectangle(originalFrame, idBoxStart, idBoxEnd, (25, 25, 25), cv2.FILLED) # for text visibility
+                cv2.rectangle(originalFrame, idBoxStart, idBoxEnd, mainColour, thickness=2)
+                #fontScale = (((right-left)/100)/(bottom-top))*10
+                cv2.putText(originalFrame, name, (left + 10 , bottom + 15), cv2.FONT_HERSHEY_DUPLEX, 0.45, (255, 255, 255), 1)
+        
+        return originalFrame
+
     def ApplyAIAlgorithm(self, videoName):
         try:
             #startTime = time.time()
@@ -70,53 +106,25 @@ class Application:
             outputVideo = self.CreateOutputVideo(inputVideo, videoName)
 
             frameNumber = 0
-            faceNames = []
 
             while True:
-                # Read video frame by frame
                 readingVideo, frame = inputVideo.read()
                 frameNumber += 1
 
-                # Quit when the input video file ends
                 if not readingVideo:
                     break
 
                 # cv uses BGR instead of RGB so converting it to the same as face_recognition uses
                 rgbFrame = frame[:, :, ::-1]
                 
-                # find all faces in the current frame, then encode them all
-                faceLocations = face_recognition.face_locations(rgbFrame)
-                faceEncodings = face_recognition.face_encodings(rgbFrame, faceLocations)
-                for faceEncoding in faceEncodings:
-                    name = ""
-                    for knownPerson in self.knownPeople:
-                        knownFaceEncoding = self.knownPeople[knownPerson]
-                        match = face_recognition.compare_faces([knownFaceEncoding], faceEncoding, tolerance=0.5)
-                        
-                        if(match):
-                            if(match[0]):
-                                print(f"match found for {knownPerson} in {videoName}")
-                                name = knownPerson
-                    faceNames.append(name)
-
-                # Label the results
-                for (top, right, bottom, left), name in zip(faceLocations, faceNames):
-                    # Draw a box around the face
-                    mainColour = (0,255,0)
-                    cv2.rectangle(frame, (left, top), (right, bottom), mainColour, 2)
-
-                    # Draw a label with a name below the face
-                    if(name != ""):
-                        idBoxStart = (left, bottom)
-                        idBoxEnd = (right, bottom + 20)
-                        cv2.rectangle(frame, idBoxStart, idBoxEnd, (25, 25, 25), cv2.FILLED) # for text visibility
-                        cv2.rectangle(frame, idBoxStart, idBoxEnd, mainColour, thickness=2)
-                        #fontScale = (((right-left)/100)/(bottom-top))*10
-                        cv2.putText(frame, name, (left + 10 , bottom + 15), cv2.FONT_HERSHEY_DUPLEX, 0.45, (255, 255, 255), 1)
+                identifyIndividualsInFrameResult = self.IdentifyIndividualsInFrame(rgbFrame)
+                faceNames = identifyIndividualsInFrameResult[0]
+                faceLocations = identifyIndividualsInFrameResult[1]
+                updatedFrame = self.DrawResultsToFrame(frame, faceNames, faceLocations)
 
                 # Write the resulting image to the output video file
                 self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Writing frame {frameNumber}/{length}")
-                outputVideo.write(frame)
+                outputVideo.write(updatedFrame)
 
             inputVideo.release()
             cv2.destroyAllWindows()
@@ -148,10 +156,6 @@ class Application:
 
     def Run(self, inputType):
         self.gui.StartAutoRefresh()
-        if(self.runStartedAtleastOnce == False):
-            if(self.videosToAnalyseLoaded == False and self.knownPeopleLoaded == False):
-                threading.Thread(target=self.LoadImagesAndVideos).start()
-            self.runStartedAtleastOnce = True
 
         try:
             if(inputType == InputType.PreRecorded):
@@ -180,7 +184,10 @@ class Application:
     def LoadImagesAndVideos(self):
         self.LoadInputImages()
         self.LoadInputVideos()
-        self.gui.UpdateLabelWidget(self.runStatusLabel, "Finished pre-loading images and videos. Awaiting input.")
+        self.gui.UpdateLabelWidget(self.runStatusLabel, "Finished loading images and videos. Awaiting input.")
+        if(self.resourcesLoadedAtleastOnce == False):
+            self.gui.EnableButton(self.preRecordedButton)
+            self.resourcesLoadedAtleastOnce = True
         return
 
     def LoadInputImages(self):
@@ -212,11 +219,12 @@ class Application:
 
     def LoadKnownFaceEncodings(self):
         if(not self.fileHandler.DirectoryExists(f"{self.directorySettings.faceEncodingsDirectory}.txt")):
-            print("No known encodings file... skipping pre-load.")
+            print("No known face encodings file... skipping pre-load.")
             return 
 
-        print("Reading known encodings")
-        #faceEncodingsFileData = self.fileHandler.ReadLines("", f"{self.directorySettings.faceEncodingsDirectory}.txt")
+        print("Reading known face encodings")
+
+        self.knownPeople.clear()
         faceEncodingsFileData = self.fileHandler.PickleReadFile(f"{self.directorySettings.faceEncodingsDirectory}.txt")
         if(not len(faceEncodingsFileData) > 0):
             return
@@ -233,6 +241,7 @@ class Application:
 
     def LoadInputVideos(self):
         self.gui.UpdateLabelWidget(self.runStatusLabel, "Status: Loading input videos...")
+        self.videosToAnalyse.clear()
 
         # Go through all videos in the videos directory and create a new ArtefactVideo object
         videoFiles = self.fileHandler.ListDirectory(self.directorySettings.inputDirectory)
@@ -243,7 +252,6 @@ class Application:
             else:
                 continue
 
-        self.videosToAnalyseLoaded = True
         self.gui.EnableButton(self.preRecordedButton)
 
 application = Application()
