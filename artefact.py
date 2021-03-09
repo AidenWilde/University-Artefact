@@ -41,9 +41,11 @@ class Application:
         mainWindow = tk.Tk()
         self.gui = ArtefactGUI(master=mainWindow)
         self.runStatusLabel = self.gui.AddWidget("label", "Status: Awaiting input", None, 1, 1)
-        self.reloadResourcesButton = self.gui.AddWidget("button", "Load/Reload resources", lambda : self.LoadImagesAndVideos(), 1, 2)
-        self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda : self.Run(InputType.PreRecorded), 1, 3) 
-        self.realTimeButton = self.gui.AddWidget("button", "Real-time analysis", lambda : self.Run(InputType.Realtime), 1, 4)
+        self.reloadResourcesButton = self.gui.AddWidget("button", "Load/Reload resources", lambda: self.LoadImagesAndVideos(), 1, 2)
+        self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda: self.Run(InputType.PreRecorded), 1, 3) 
+        self.realTimeButton = self.gui.AddWidget("button", "Real-time analysis", lambda: self.Run(InputType.Realtime), 1, 4)
+        self.quitButton = self.gui.AddWidget("button", "Quit", lambda : mainWindow.destroy(), 1, 5)
+        
         self.gui.DisableButton(self.preRecordedButton)
         self.gui.mainloop()
 
