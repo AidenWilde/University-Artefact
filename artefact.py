@@ -38,13 +38,13 @@ class Application:
         self.LoadKnownFaceEncodings()
         self.resourcesLoadedAtleastOnce = False
 
-        mainWindow = tk.Tk()
-        self.gui = ArtefactGUI(master=mainWindow)
+        self.mainWindow = tk.Tk()
+        self.gui = ArtefactGUI(master=self.mainWindow)
         self.runStatusLabel = self.gui.AddWidget("label", "Status: Awaiting input", None, 1, 1)
         self.reloadResourcesButton = self.gui.AddWidget("button", "Load/Reload resources", lambda: self.LoadImagesAndVideos(), 1, 2)
         self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda: self.Run(InputType.PreRecorded), 1, 3, tk.DISABLED) 
         self.realTimeButton = self.gui.AddWidget("button", "Real-time analysis", lambda: self.Run(InputType.Realtime), 1, 4,  tk.DISABLED)
-        self.quitButton = self.gui.AddWidget("button", "Quit", lambda : mainWindow.destroy(), 1, 5)
+        self.quitButton = self.gui.AddWidget("button", "Quit", lambda : self.mainWindow.destroy(), 1, 5)
         
         self.gui.mainloop()
 
@@ -79,8 +79,13 @@ class Application:
 
         return (faceNames, faceLocations) 
 
-    def DrawResultsToFrame(self, originalFrame, faceNames, faceLocations):
+    def DrawResultsToFrame(self, originalFrame, faceNames, faceLocations, faceLocationScale):
         for (top, right, bottom, left), name in zip(faceLocations, faceNames):
+            top *= faceLocationScale
+            right *= faceLocationScale
+            bottom *= faceLocationScale
+            left *= faceLocationScale
+
             # Draw a box around the face
             mainColour = (0,255,0)
             cv2.rectangle(originalFrame, (left, top), (right, bottom), mainColour, 2)
@@ -96,43 +101,57 @@ class Application:
         
         return originalFrame
 
-    def ApplyAIAlgorithm(self, videoName):
+    def ApplyAIAlgorithm(self, videoName, inputType):
         try:
-            #startTime = time.time()
-            # Open input video file into memory 
-            inputVideo = cv2.VideoCapture(f"{self.directorySettings.inputDirectory}/{videoName}")
-            length = int(inputVideo.get(cv2.CAP_PROP_FRAME_COUNT))
-        
-            # Create an output video file
-            outputVideo = self.CreateOutputVideo(inputVideo, videoName)
+            if(inputType == InputType.PreRecorded):
+                inputVideo = cv2.VideoCapture(f"{self.directorySettings.inputDirectory}/{videoName}")
+                length = int(inputVideo.get(cv2.CAP_PROP_FRAME_COUNT))
 
-            frameNumber = 0
+                outputVideo = self.CreateOutputVideo(inputVideo, videoName)
 
-            while True:
-                readingVideo, frame = inputVideo.read()
-                frameNumber += 1
+                frameNumber = 0
 
-                if not readingVideo:
-                    break
+                while True:
+                    readingVideo, frame = inputVideo.read()
+                    frameNumber += 1
 
-                # cv uses BGR instead of RGB so converting it to the same as face_recognition uses
-                rgbFrame = frame[:, :, ::-1]
-                
-                (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(rgbFrame)
-                updatedFrame = self.DrawResultsToFrame(frame, faceNames, faceLocations)
+                    if not readingVideo:
+                        break
 
-                # Write the resulting image to the output video file
-                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Writing frame {frameNumber}/{length}")
-                outputVideo.write(updatedFrame)
+                    # cv uses BGR instead of RGB so converting it to the same as face_recognition uses
+                    rgbFrame = frame[:, :, ::-1]
+                    
+                    (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(rgbFrame)
+                    updatedFrame = self.DrawResultsToFrame(frame, faceNames, faceLocations, 1)
 
-            inputVideo.release()
-            cv2.destroyAllWindows()
+                    self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Writing frame {frameNumber}/{length}")
+                    outputVideo.write(updatedFrame)
 
-            #endTime = time.time()
-            #timeTaken = endTime - startTime
-            #newContent = f"start:{str(startTime)}\nend:{str(endTime)}\ntimeTaken:{str(timeTaken)}\ntotalFrames:{str(length)}\ntimePerFrame:{str(timeTaken/length)}"
-            #self.fileHandler.WriteFileContents(f"timings-{videoName}.txt", newContent)
-            
+                inputVideo.release()
+                cv2.destroyAllWindows()
+
+            elif(inputType == InputType.Realtime):
+                video_capture = cv2.VideoCapture(0)
+                processNewFrame = True
+                videoOutputWindow = cv2.namedWindow('videoOutputWindow')
+                cv2.moveWindow(videoOutputWindow, 0, 0)
+
+                while True:
+                    ret, frame = video_capture.read()
+                    smallFrame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+                    rgbSmallFrame = smallFrame[:, :, ::-1]
+                    if processNewFrame:
+                        (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(rgbSmallFrame)
+                    processNewFrame = not processNewFrame
+
+                    analysedFrame = self.DrawResultsToFrame(frame, faceNames, faceLocations, 4)
+
+                    cv2.imshow(videoOutputWindow, analysedFrame)
+
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        cv2.destroyAllWindows()
+                        self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Closed real-time video window")
+                        break
             return
         except Error as e:
             raise e    
@@ -161,8 +180,16 @@ class Application:
                 threading.Thread(target=self.AnalyseVideos).start()
                 
             elif(inputType == InputType.Realtime):
-                pass
-            # rest of functionality here...
+                self.AnalyseHardwareVideoStream()
+
+        except Error as e:
+            self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
+            print(e.GetErrorMessage())
+
+    def AnalyseHardwareVideoStream(self):
+        try:
+            self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Reading from hardware video stream...")
+            self.ApplyAIAlgorithm(None, InputType.Realtime)
         except Error as e:
             self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
             print(e.GetErrorMessage())
@@ -172,7 +199,7 @@ class Application:
         for video in self.videosToAnalyse:
             try:
                 self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Starting video {video}")
-                self.ApplyAIAlgorithm(video)
+                self.ApplyAIAlgorithm(video, InputType.PreRecorded)
                 self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Finished video {video}")
             except Error as e:
                 self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
@@ -192,6 +219,9 @@ class Application:
     def LoadInputImages(self):
         self.gui.UpdateLabelWidget(self.runStatusLabel, "Status: Loading known faces...")
         imageFiles = self.fileHandler.ListDirectory(self.directorySettings.knownPeopleDirectory)
+        if(len(imageFiles) <= 0):
+            raise Error(f"No input images found, no new individuals will be able to be identified other than already-known encodings.")
+
         for imageFile in imageFiles:
             fileInformation = imageFile.split(".")
             if(fileInformation[1].lower() in self.supportedFileFormats):
