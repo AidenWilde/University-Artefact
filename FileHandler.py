@@ -23,16 +23,7 @@ class FileHandler:
             return contents
         else:
             return []      
-
-    def ReadLines(self, path, fileName):
-        if(os.path.exists(fileName)):
-            file = open(fileName, 'r')
-            contents = file.readlines()
-            file.close()
-            return contents
-        else:
-            return []         
-
+    
     def WriteFileContents(self, fileName, content):
         file = open(fileName, 'w')
         file.writelines(content)
