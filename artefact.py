@@ -176,12 +176,14 @@ class Application:
             print(e.GetErrorMessage())
 
     def AnalyseHardwareVideoStream(self):
+        self.gui.DisableButton(self.realTimeButton)
         try:
             self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Reading from hardware video stream...")
             self.ApplyAIAlgorithm(None, InputType.Realtime)
         except Error as e:
             self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
             print(e.GetErrorMessage())
+        self.gui.EnableButton(self.realTimeButton)
 
     def AnalyseVideos(self):
         self.gui.DisableButton(self.preRecordedButton)
