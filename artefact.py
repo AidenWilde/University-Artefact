@@ -6,7 +6,6 @@ import os
 import numpy
 import time
 from enum import Enum
-import csv # for documenting timings 
 
 from TkinterWrapper import TkinterWrapper 
 from FileHandler import FileHandler
@@ -128,17 +127,7 @@ class Application:
                 videoOutputWindow = cv2.namedWindow('videoOutputWindow')
                 cv2.moveWindow(videoOutputWindow, 0, 0)
 
-                frameNumber = 1
-                frameTimingData = []
                 while True:
-                    if(frameNumber > 1000):
-                        cv2.destroyAllWindows()
-                        video_capture.release()
-                        break
-
-                    # frame number, time taken to process frame
-                    frameStartTime = time.time()
-
                     ret, frame = video_capture.read()
                     smallFrame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
                     rgbSmallFrame = smallFrame[:, :, ::-1]
@@ -148,25 +137,12 @@ class Application:
 
                     analysedFrame = self.DrawResultsToFrame(frame, faceNames, faceLocations, 4)
 
-                    frameEndTime = time.time()
-                    frameNumber += 1
-                    timeTaken = frameEndTime - frameStartTime
-                    frameTimingData.append([frameNumber, frameStartTime, frameEndTime, timeTaken])
-
                     cv2.imshow(videoOutputWindow, analysedFrame)
 
                     if cv2.waitKey(1) & 0xFF == ord('q'):
-                        self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Closed real-time video window")
                         cv2.destroyAllWindows()
-                        video_capture.release()
+                        self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Closed real-time video window")
                         break
-
-                fields = ['Frame number', 'StartTime', 'EndTime', 'TimeTaken']
-                with open('GFG', 'w') as f: 
-                    write = csv.writer(f) 
-                    write.writerow(fields) 
-                    write.writerows(frameTimingData) 
-
             return
         except Error as e:
             raise e    
