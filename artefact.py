@@ -6,18 +6,13 @@ import os
 import numpy
 import time
 from enum import Enum
+import multiprocessing 
 
 from TkinterWrapper import TkinterWrapper 
 from FileHandler import FileHandler
 from Settings import Settings
 from Error import Error
 from ArtefactGUI import ArtefactGUI
-
-"""
-Todo list:
-
-1. Multithreading so that videos can be processed faster 
-"""
 
 class InputType(Enum):
     PreRecorded = 0
@@ -32,6 +27,7 @@ class Application:
         self.videosToAnalyse = []
         self.LoadKnownFaceEncodings()
         self.resourcesLoadedAtleastOnce = False
+        self.resultingFrames = []
 
         self.mainWindow = tk.Tk()
         self.gui = ArtefactGUI(master=self.mainWindow)
@@ -93,33 +89,84 @@ class Application:
         
         return originalFrame
 
+
+    def ProcessChunk(self, chunk):
+        # frameTupil format : (frameNumber, cvFrame, rgbFrame)
+        try:
+            for frameTupil in chunk:
+                print("Processing frame: ", frameTupil[0], " in chunk.")
+                (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(frameTupil[2])
+                updatedFrame = self.DrawResultsToFrame(frameTupil[1], faceNames, faceLocations, 1)
+                self.resultingFrames.append((frameTupil[0], updatedFrame))
+            
+        except Error as e:
+            raise e    
+
+    def ChunkFrames(self, uneditedFrames):
+        # uneditedFrames format : (frameNumber, cvFrame, rgbFrame)
+        print(len(uneditedFrames))
+        chunks = []
+        chunk = []
+        maxNumberOfChunks = 4
+        chunkSize = len(uneditedFrames)/maxNumberOfChunks
+        iterator = 0
+        for uneditedFrameTuple in uneditedFrames:
+            chunk.append(uneditedFrameTuple)
+            iterator += 1
+            if(iterator % int(chunkSize) == 0):
+                chunks.append(chunk)
+                print(chunk[0][0])
+                chunk = []
+                print(f"end of chunk @ {iterator}.")
+
+        print("Total chunks: ", len(chunks))
+        print(chunks[0][0][0], chunks[1][0][0], chunks[2][0][0], chunks[3][0][0])
+
+        return chunks
+
     def ApplyAIAlgorithm(self, videoName, inputType):
         try:
+            self.gui.UpdateLabelWidget(self.runStatusLabel, f"Processing video {videoName}")
+            uneditedFrames = []
+            editedFrames = []
+
             if(inputType == InputType.PreRecorded):
                 inputVideo = cv2.VideoCapture(f"{self.directorySettings.inputDirectory}/{videoName}")
                 length = int(inputVideo.get(cv2.CAP_PROP_FRAME_COUNT))
 
-                outputVideo = self.CreateOutputVideo(inputVideo, videoName)
-
                 frameNumber = 0
 
                 while True:
-                    readingVideo, frame = inputVideo.read()
+                    readingVideo, cvFrame = inputVideo.read()
                     frameNumber += 1
 
                     if not readingVideo:
                         break
 
-                    rgbFrame = frame[:, :, ::-1]
+                    rgbFrame = cvFrame[:, :, ::-1]
+                    uneditedFrames.append((frameNumber, cvFrame, rgbFrame))
                     
-                    (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(rgbFrame)
-                    updatedFrame = self.DrawResultsToFrame(frame, faceNames, faceLocations, 1)
+                chunks = self.ChunkFrames(uneditedFrames) # returns list of chunks, chunks[chunk[tuple/frame]]            
 
-                    self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Writing frame {frameNumber}/{length}")
-                    outputVideo.write(updatedFrame)
+                threads = []
+                for chunk in chunks:
+                    process = threading.Thread(target=self.ProcessChunk, args=[chunk])
+                    process.start()
+                    threads.append(process)
+
+                for process in threads:
+                    process.join()
+
+                outputVideo = self.CreateOutputVideo(inputVideo, videoName)
+
+                # might need to order frames based on frameNumber
+                sortedResultingFrames = sorted(self.resultingFrames, key=lambda x : x[0])
+                for frame in sortedResultingFrames:
+                    outputVideo.write(frame[1])
 
                 inputVideo.release()
                 cv2.destroyAllWindows()
+                self.resultingFrames.clear()
 
             elif(inputType == InputType.Realtime):
                 video_capture = cv2.VideoCapture(0)
@@ -166,8 +213,7 @@ class Application:
 
         try:
             if(inputType == InputType.PreRecorded):
-                threading.Thread(target=self.AnalyseVideos).start()
-                
+                self.AnalyseVideos()
             elif(inputType == InputType.Realtime):
                 self.AnalyseHardwareVideoStream()
 
