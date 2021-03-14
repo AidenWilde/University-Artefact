@@ -91,20 +91,13 @@ class Application:
 
 
     def ProcessChunk(self, chunk):
-        # frameTupil format : (frameNumber, cvFrame, rgbFrame)
-        try:
-            for frameTupil in chunk:
-                print("Processing frame: ", frameTupil[0], " in chunk.")
-                (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(frameTupil[2])
-                updatedFrame = self.DrawResultsToFrame(frameTupil[1], faceNames, faceLocations, 1)
-                self.resultingFrames.append((frameTupil[0], updatedFrame))
-            
-        except Error as e:
-            raise e    
+        for frameTupil in chunk:
+            print("Processing frame: ", frameTupil[0], " in chunk.")
+            (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(frameTupil[2])
+            updatedFrame = self.DrawResultsToFrame(frameTupil[1], faceNames, faceLocations, 1)
+            self.resultingFrames.append((frameTupil[0], updatedFrame))
 
     def ChunkFrames(self, uneditedFrames):
-        # uneditedFrames format : (frameNumber, cvFrame, rgbFrame)
-        print(len(uneditedFrames))
         chunks = []
         chunk = []
         maxNumberOfChunks = 4
@@ -115,12 +108,7 @@ class Application:
             iterator += 1
             if(iterator % int(chunkSize) == 0):
                 chunks.append(chunk)
-                print(chunk[0][0])
                 chunk = []
-                print(f"end of chunk @ {iterator}.")
-
-        print("Total chunks: ", len(chunks))
-        print(chunks[0][0][0], chunks[1][0][0], chunks[2][0][0], chunks[3][0][0])
 
         return chunks
 
