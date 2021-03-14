@@ -83,7 +83,7 @@ class Application:
             if(name != ""):
                 idBoxStart = (left, bottom)
                 idBoxEnd = (right, bottom + 20)
-                cv2.rectangle(originalFrame, idBoxStart, idBoxEnd, (25, 25, 25), cv2.FILLED) # for text visibility
+                cv2.rectangle(originalFrame, idBoxStart, idBoxEnd, (25, 25, 25), cv2.FILLED)
                 cv2.rectangle(originalFrame, idBoxStart, idBoxEnd, mainColour, thickness=2)
                 cv2.putText(originalFrame, name, (left + 10 , bottom + 15), cv2.FONT_HERSHEY_DUPLEX, 0.45, (255, 255, 255), 1)
         
