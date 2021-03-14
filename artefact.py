@@ -1,12 +1,11 @@
 import tkinter as tk
-import cv2 # available at : https://pypi.org/project/opencv-python/
-import face_recognition # available at : https://pypi.org/project/face-recognition/
+import cv2
+import face_recognition
 import threading
 import os
 import numpy
 import time
 from enum import Enum
-import multiprocessing 
 
 from TkinterWrapper import TkinterWrapper 
 from FileHandler import FileHandler
@@ -133,7 +132,7 @@ class Application:
                     rgbFrame = cvFrame[:, :, ::-1]
                     uneditedFrames.append((frameNumber, cvFrame, rgbFrame))
                     
-                chunks = self.ChunkFrames(uneditedFrames) # returns list of chunks, chunks[chunk[tuple/frame]]            
+                chunks = self.ChunkFrames(uneditedFrames) 
 
                 threads = []
                 for chunk in chunks:
@@ -146,7 +145,6 @@ class Application:
 
                 outputVideo = self.CreateOutputVideo(inputVideo, videoName)
 
-                # might need to order frames based on frameNumber
                 sortedResultingFrames = sorted(self.resultingFrames, key=lambda x : x[0])
                 for frame in sortedResultingFrames:
                     outputVideo.write(frame[1])
