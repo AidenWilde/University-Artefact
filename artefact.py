@@ -92,7 +92,6 @@ class Application:
 
     def ProcessChunk(self, chunk):
         for frameTupil in chunk:
-            print("Processing frame: ", frameTupil[0], " in chunk.")
             (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(frameTupil[2])
             updatedFrame = self.DrawResultsToFrame(frameTupil[1], faceNames, faceLocations, 1)
             self.resultingFrames.append((frameTupil[0], updatedFrame))
