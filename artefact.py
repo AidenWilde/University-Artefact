@@ -25,7 +25,6 @@ class Application:
         self.knownPeople = {}
         self.videosToAnalyse = []
         self.LoadKnownFaceEncodings()
-        self.resourcesLoadedAtleastOnce = False
         self.resultingFrames = []
 
         self.mainWindow = tk.Tk()
