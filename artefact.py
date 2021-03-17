@@ -198,7 +198,7 @@ class Application:
 
         try:
             if(inputType == InputType.PreRecorded):
-                self.AnalyseVideos()
+                threading.Thread(target=self.AnalyseVideos).start()
             elif(inputType == InputType.Realtime):
                 self.AnalyseHardwareVideoStream()
 
@@ -233,9 +233,6 @@ class Application:
         self.LoadInputImages()
         self.LoadInputVideos()
         self.gui.UpdateLabelWidget(self.runStatusLabel, "Finished loading images and videos. Awaiting input.")
-        if(self.resourcesLoadedAtleastOnce == False):
-            self.gui.EnableButton(self.preRecordedButton)
-            self.resourcesLoadedAtleastOnce = True
         return
 
     def LoadInputImages(self):
