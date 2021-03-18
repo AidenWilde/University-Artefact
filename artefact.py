@@ -113,11 +113,9 @@ class Application:
         try:
             self.gui.UpdateLabelWidget(self.runStatusLabel, f"Processing video {videoName}")
             uneditedFrames = []
-            editedFrames = []
 
             if(inputType == InputType.PreRecorded):
                 inputVideo = cv2.VideoCapture(f"{self.directorySettings.inputDirectory}/{videoName}")
-                length = int(inputVideo.get(cv2.CAP_PROP_FRAME_COUNT))
 
                 frameNumber = 0
 
