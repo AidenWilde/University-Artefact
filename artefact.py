@@ -98,14 +98,20 @@ class Application:
         chunks = []
         chunk = []
         maxNumberOfChunks = 4
-        chunkSize = len(uneditedFrames)/maxNumberOfChunks
+        chunkSize = int(len(uneditedFrames)/maxNumberOfChunks)
+        remainingFrames = len(uneditedFrames)-(chunkSize*maxNumberOfChunks)
         iterator = 0
         for uneditedFrameTuple in uneditedFrames:
             chunk.append(uneditedFrameTuple)
             iterator += 1
+
             if(iterator % int(chunkSize) == 0):
                 chunks.append(chunk)
                 chunk = []
+
+        if(remainingFrames > 0):
+            for i in range(chunks[3][-1][0], (chunks[3][-1][0] + remainingFrames)):
+                chunks[3].append(uneditedFrames[i])
 
         return chunks
 
