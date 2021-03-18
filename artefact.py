@@ -57,7 +57,6 @@ class Application:
 
     def IdentifyIndividualsInFrame(self, frame):
         faceNames = []
-
         faceLocations = face_recognition.face_locations(frame)
         faceEncodings = face_recognition.face_encodings(frame, faceLocations)
         for faceEncoding in faceEncodings:
@@ -139,6 +138,10 @@ class Application:
                 frameNumber = 0
 
                 while True:
+                    if(self.exitEvent.is_set()):
+                        print(f"Finished processing {videoName} early because program received exit command.")
+                        break    
+
                     readingVideo, cvFrame = inputVideo.read()
                     frameNumber += 1
 
