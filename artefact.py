@@ -2,6 +2,7 @@ import tkinter as tk
 import cv2
 import face_recognition
 import threading
+import signal
 import os
 import numpy
 import time
@@ -26,6 +27,8 @@ class Application:
         self.videosToAnalyse = []
         self.LoadKnownFaceEncodings()
         self.resultingFrames = []
+        self.threads = []
+        self.exitEvent = threading.Event()
 
         self.mainWindow = tk.Tk()
         self.gui = ArtefactGUI(master=self.mainWindow)
@@ -36,6 +39,9 @@ class Application:
         self.quitButton = self.gui.AddWidget("button", "Quit", lambda : self.mainWindow.destroy(), 1, 5)
         
         self.gui.mainloop()
+
+    def SignalHandler(self, signum, frame):
+        self.exitEvent.set()
 
     def ReadSettings(self):
         settingsFile = "settings.txt"
@@ -87,24 +93,29 @@ class Application:
         
         return originalFrame
 
-
     def ProcessChunk(self, chunk):
+        print("Processing next chunk.")
         for frameTupil in chunk:
+            if(self.exitEvent.is_set()):
+                print("Finished chunk early because program received exit command.")
+                break    
             (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(frameTupil[2])
             updatedFrame = self.DrawResultsToFrame(frameTupil[1], faceNames, faceLocations, 1)
             self.resultingFrames.append((frameTupil[0], updatedFrame))
+        print("Finished chunk.")
 
     def ChunkFrames(self, uneditedFrames):
+        print("Generating chunks.")
         chunks = []
         chunk = []
         maxNumberOfChunks = 4
         chunkSize = int(len(uneditedFrames)/maxNumberOfChunks)
         remainingFrames = len(uneditedFrames)-(chunkSize*maxNumberOfChunks)
+        
         iterator = 0
         for uneditedFrameTuple in uneditedFrames:
             chunk.append(uneditedFrameTuple)
             iterator += 1
-
             if(iterator % int(chunkSize) == 0):
                 chunks.append(chunk)
                 chunk = []
@@ -117,10 +128,12 @@ class Application:
 
     def ApplyAIAlgorithm(self, videoName, inputType):
         try:
+            print(f"Processing video {videoName}")
             self.gui.UpdateLabelWidget(self.runStatusLabel, f"Processing video {videoName}")
             uneditedFrames = []
 
             if(inputType == InputType.PreRecorded):
+                print(f"Applying AI Algorithm to {videoName}")
                 inputVideo = cv2.VideoCapture(f"{self.directorySettings.inputDirectory}/{videoName}")
 
                 frameNumber = 0
@@ -136,25 +149,27 @@ class Application:
                     uneditedFrames.append((frameNumber, cvFrame, rgbFrame))
                     
                 chunks = self.ChunkFrames(uneditedFrames) 
-
-                threads = []
                 for chunk in chunks:
                     process = threading.Thread(target=self.ProcessChunk, args=[chunk])
                     process.start()
-                    threads.append(process)
+                    self.threads.append(process)
 
-                for process in threads:
+                for process in self.threads:
                     process.join()
 
                 outputVideo = self.CreateOutputVideo(inputVideo, videoName)
 
+                count = 0
                 sortedResultingFrames = sorted(self.resultingFrames, key=lambda x : x[0])
                 for frame in sortedResultingFrames:
                     outputVideo.write(frame[1])
+                    count += 1
 
                 inputVideo.release()
                 cv2.destroyAllWindows()
                 self.resultingFrames.clear()
+
+                print(f"Finished processing video {videoName}")
 
             elif(inputType == InputType.Realtime):
                 video_capture = cv2.VideoCapture(0)
@@ -201,6 +216,7 @@ class Application:
 
         try:
             if(inputType == InputType.PreRecorded):
+                signal.signal(signal.SIGINT, self.SignalHandler)
                 threading.Thread(target=self.AnalyseVideos).start()
             elif(inputType == InputType.Realtime):
                 self.AnalyseHardwareVideoStream()
@@ -222,14 +238,18 @@ class Application:
     def AnalyseVideos(self):
         self.gui.DisableButton(self.preRecordedButton)
         for video in self.videosToAnalyse:
-            try:
-                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Starting video {video}")
-                self.ApplyAIAlgorithm(video, InputType.PreRecorded)
-                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Finished video {video}")
-            except Error as e:
-                self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
-                print(e.GetErrorMessage())
-                continue
+            if(self.exitEvent.is_set()):
+                print("Finished processing early because program received exit command.")
+                break
+            else:
+                try:
+                    self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Starting video {video}")
+                    self.ApplyAIAlgorithm(video, InputType.PreRecorded)
+                    self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Finished video {video}")
+                except Error as e:
+                    self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
+                    print(e.GetErrorMessage())
+                    continue
         self.gui.EnableButton(self.preRecordedButton)
 
     def LoadImagesAndVideos(self):
