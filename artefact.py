@@ -2,6 +2,7 @@ import tkinter as tk
 import cv2
 import face_recognition
 import threading
+import multiprocessing
 import signal
 import os
 import numpy
@@ -175,10 +176,12 @@ class Application:
                 print(f"Finished processing video {videoName}")
 
             elif(inputType == InputType.Realtime):
+                self.gui.DisableButton(self.realTimeButton)
                 video_capture = cv2.VideoCapture(0)
                 processNewFrame = True
-                videoOutputWindow = cv2.namedWindow('videoOutputWindow')
-                cv2.moveWindow(videoOutputWindow, 0, 0)
+                cv2NamedWindowString = "Real-time video processing"
+                cv2.namedWindow(cv2NamedWindowString)
+                cv2.moveWindow(cv2NamedWindowString, 0, 0)
 
                 while True:
                     ret, frame = video_capture.read()
@@ -190,11 +193,12 @@ class Application:
 
                     analysedFrame = self.DrawResultsToFrame(frame, faceNames, faceLocations, 4)
 
-                    cv2.imshow(videoOutputWindow, analysedFrame)
+                    cv2.imshow(cv2NamedWindowString, analysedFrame)
 
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         cv2.destroyAllWindows()
                         self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Closed real-time video window")
+                        self.gui.EnableButton(self.realTimeButton)
                         break
             return
         except Error as e:
@@ -220,26 +224,27 @@ class Application:
         try:
             if(inputType == InputType.PreRecorded):
                 signal.signal(signal.SIGINT, self.SignalHandler)
-                threading.Thread(target=self.AnalyseVideos).start()
+                analyseVideosThread = threading.Thread(target=self.AnalyseVideos)
+                analyseVideosThread.start()
             elif(inputType == InputType.Realtime):
                 self.AnalyseHardwareVideoStream()
+                # threading.Thread(target=self.AnalyseHardwareVideoStream).start()
 
         except Error as e:
             self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
             print(e.GetErrorMessage())
 
     def AnalyseHardwareVideoStream(self):
-        self.gui.DisableButton(self.realTimeButton)
         try:
             self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Reading from hardware video stream...")
             self.ApplyAIAlgorithm(None, InputType.Realtime)
         except Error as e:
             self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
             print(e.GetErrorMessage())
-        self.gui.EnableButton(self.realTimeButton)
 
     def AnalyseVideos(self):
         self.gui.DisableButton(self.preRecordedButton)
+        self.gui.DisableButton(self.reloadResourcesButton)
         for video in self.videosToAnalyse:
             if(self.exitEvent.is_set()):
                 print("Finished processing early because program received exit command.")
@@ -254,6 +259,7 @@ class Application:
                     print(e.GetErrorMessage())
                     continue
         self.gui.EnableButton(self.preRecordedButton)
+        self.gui.EnableButton(self.reloadResourcesButton)
 
     def LoadImagesAndVideos(self):
         self.LoadInputImages()
