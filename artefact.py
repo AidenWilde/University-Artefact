@@ -248,6 +248,7 @@ class Application:
         for video in self.videosToAnalyse:
             if(self.exitEvent.is_set()):
                 print("Finished processing early because program received exit command.")
+                self.exitEvent.clear()
                 break
             else:
                 try:
