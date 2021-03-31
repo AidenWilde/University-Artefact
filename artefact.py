@@ -135,6 +135,8 @@ class Application:
             if(inputType == InputType.PreRecorded):
                 print(f"Applying AI Algorithm to {videoName}")
                 inputVideo = cv2.VideoCapture(f"{self.directorySettings.inputDirectory}/{videoName}")
+                if(not inputVideo.isOpened()):
+                    raise Error(f"Unable to open video {videoName}")
 
                 frameNumber = 0
 
@@ -177,14 +179,17 @@ class Application:
 
             elif(inputType == InputType.Realtime):
                 self.gui.DisableButton(self.realTimeButton)
-                video_capture = cv2.VideoCapture(0)
+                videoCapture = cv2.VideoCapture(0)
+                if(not videoCapture.isOpened()):
+                    raise Error(f"Unable to open video {videoName}")
+
                 processNewFrame = True
                 cv2NamedWindowString = "Real-time video processing"
                 cv2.namedWindow(cv2NamedWindowString)
                 cv2.moveWindow(cv2NamedWindowString, 0, 0)
 
                 while True:
-                    ret, frame = video_capture.read()
+                    ret, frame = videoCapture.read()
                     smallFrame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
                     rgbSmallFrame = smallFrame[:, :, ::-1]
                     if processNewFrame:
