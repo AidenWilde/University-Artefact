@@ -142,8 +142,7 @@ class Application:
 
                 while True:
                     if(self.exitEvent.is_set()):
-                        print(f"Finished processing {videoName} early because program received exit command.")
-                        break    
+                        raise Error(f"Finished processing {videoName} early because program received exit command")
 
                     readingVideo, cvFrame = inputVideo.read()
                     frameNumber += 1
@@ -194,13 +193,12 @@ class Application:
                     rgbSmallFrame = smallFrame[:, :, ::-1]
                     if processNewFrame:
                         (faceNames, faceLocations) = self.IdentifyIndividualsInFrame(rgbSmallFrame)
+                    
                     processNewFrame = not processNewFrame
-
                     analysedFrame = self.DrawResultsToFrame(frame, faceNames, faceLocations, 4)
-
                     cv2.imshow(cv2NamedWindowString, analysedFrame)
 
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                    if(cv2.waitKey(1) & 0xFF == ord('q')):
                         cv2.destroyAllWindows()
                         self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Closed real-time video window")
                         self.gui.EnableButton(self.realTimeButton)
@@ -315,7 +313,6 @@ class Application:
         if(not len(faceEncodingsFileData) > 0):
             return
 
-        # need to alter how it reads known encodings
         for knownEncoding in faceEncodingsFileData:
             self.knownPeople[knownEncoding] = faceEncodingsFileData[knownEncoding]
 
