@@ -64,7 +64,7 @@ class Application:
             name = ""
             for knownPerson in self.knownPeople:
                 knownFaceEncoding = self.knownPeople[knownPerson]
-                match = face_recognition.compare_faces([knownFaceEncoding], faceEncoding, tolerance=0.5)
+                match = face_recognition.compare_faces([knownFaceEncoding], faceEncoding, tolerance=0.425)
                 
                 if(match):
                     if(match[0]):
