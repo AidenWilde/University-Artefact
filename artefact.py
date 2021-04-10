@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter.ttk import *
 import cv2
 import face_recognition
 import threading
@@ -32,14 +33,27 @@ class Application:
         self.exitEvent = threading.Event()
 
         self.mainWindow = tk.Tk()
+        self.selectHardwareWindow = tk.TopLevel(self.mainWindow)
         self.gui = ArtefactGUI(master=self.mainWindow)
         self.runStatusLabel = self.gui.AddWidget("label", "Status: Awaiting input", None, 1, 1)
         self.reloadResourcesButton = self.gui.AddWidget("button", "Load/Reload resources", lambda: self.LoadImagesAndVideos(), 1, 2)
-        self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda: self.Run(InputType.PreRecorded), 1, 3, tk.DISABLED) 
-        self.realTimeButton = self.gui.AddWidget("button", "Real-time analysis", lambda: self.Run(InputType.Realtime), 1, 4,  tk.DISABLED)
-        self.quitButton = self.gui.AddWidget("button", "Quit", lambda : self.mainWindow.destroy(), 1, 5)
+        self.selectVideoHardwareButton = self.gui.AddWidget("button", "Select camera", lambda: self.OpenCameraGui(), 1, 3)
+        self.preRecordedButton = self.gui.AddWidget("button", "Pre-recorded analysis", lambda: self.Run(InputType.PreRecorded), 1, 4, tk.DISABLED) 
+        self.realTimeButton = self.gui.AddWidget("button", "Real-time analysis", lambda: self.Run(InputType.Realtime), 1, 5,  tk.DISABLED)
+        self.quitButton = self.gui.AddWidget("button", "Quit", lambda : self.mainWindow.destroy(), 1, 6)
         
         self.gui.mainloop()
+
+    def ListVideoHardware(self):
+        return []
+
+    def OpenCameraGui(self):
+        availableHardwareOptions = self.ListVideoHardware()
+        for i in availableHardwareOptions:
+            selectHardwareButton = self.tkinterWrapper.NewButton("", )
+            selectHardwareButton.pack()
+
+        
 
     def SignalHandler(self, signum, frame):
         self.exitEvent.set()
