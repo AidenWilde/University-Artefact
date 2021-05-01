@@ -258,17 +258,20 @@ class Application:
                     self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Starting video {video}")
                     self.ApplyAIAlgorithm(video, InputType.PreRecorded)
                     self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: Finished video {video}")
-                except Error as e:
-                    self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {e.GetErrorMessage()}")
-                    print(e.GetErrorMessage())
+                except Error as error:
+                    self.gui.UpdateLabelWidget(self.runStatusLabel, f"Status: An error has occured: {error.GetErrorMessage()}")
+                    print(error.GetErrorMessage())
                     continue
         self.gui.EnableButton(self.preRecordedButton)
         self.gui.EnableButton(self.reloadResourcesButton)
 
     def LoadImagesAndVideos(self):
-        self.LoadInputImages()
-        self.LoadInputVideos()
-        self.gui.UpdateLabelWidget(self.runStatusLabel, "Finished loading images and videos. Awaiting input.")
+        try:
+            self.LoadInputImages()
+            self.LoadInputVideos()
+            self.gui.UpdateLabelWidget(self.runStatusLabel, "Finished loading images and videos. Awaiting input.")
+        except Error as error:
+            self.gui.UpdateLabelWidget(self.runStatusLabel, error.GetErrorMessage())
         return
 
     def LoadInputImages(self):
