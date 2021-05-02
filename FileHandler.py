@@ -40,6 +40,7 @@ class FileHandler:
         
     def ListDirectory(self, path):
         if(os.path.exists(path) == False):
+            self.CreateDirectory(path)
             return []
         else:
             return os.listdir(path)
