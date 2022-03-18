@@ -6,6 +6,7 @@ For this project to run on your local machine you must first install Python and 
 1. https://pypi.org/project/face-recognition/
 2. https://pypi.org/project/opencv-python/
 
+Run artefact.py once everything is setup as described below
 
 **How to use**
 
